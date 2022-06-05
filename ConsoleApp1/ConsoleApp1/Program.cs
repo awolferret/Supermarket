@@ -17,10 +17,11 @@ namespace ConsoleApp1
         private Queue<Client> _clients = new Queue<Client>();
         private List<Product> _products = new List<Product>();
         private Random _random = new Random();
-        private bool _isWorking = true;
 
         public void Work()
         {
+            int revenue = 0;
+            bool _isWorking = true;
             AddToAssorment();
 
             while (_isWorking)
@@ -36,16 +37,19 @@ namespace ConsoleApp1
                         CreateClientQueue();
                         break;
                     case "2":
-                        ServeClient();
+                        ServeClient(ref revenue);
                         break;
                     case "3":
-                        Exit();
+                        _isWorking = false;
+                        break;
+                    default:
+                        Console.WriteLine("Ошибка");
                         break;
                 }
             }
         }
 
-        public void AddToAssorment()
+        private void AddToAssorment()
         {
             _products.Add(new Product("Молоко", GetProductCost()));
             _products.Add(new Product("Яблоки", GetProductCost()));
@@ -57,7 +61,7 @@ namespace ConsoleApp1
             _products.Add(new Product("Хлеб", GetProductCost()));
         }
 
-        public void CreateClientQueue()
+        private void CreateClientQueue()
         {
             int minCountClient = 2;
             int maxCountClient = 10;
@@ -65,19 +69,19 @@ namespace ConsoleApp1
 
             for (int i = 0; i < countClient; i++)
             {
-                _clients.Enqueue(GetClient());
+                _clients.Enqueue(CreateClient());
             }
         }
 
-        public void ServeClient()
+        private void ServeClient(ref int revenue)
         {
             while (_clients.Count > 0)
             {
-                _clients.Dequeue().PurchaseProducts();
+                _clients.Dequeue().PurchaseProducts(ref revenue);
             }
         }
 
-        private Client GetClient()
+        private Client CreateClient()
         {
             List<Product> products = new List<Product>();
             int minMoney = 25;
@@ -99,13 +103,7 @@ namespace ConsoleApp1
         {
             int minCost = 5;
             int maxCost = 30;
-            int costProduct = _random.Next(minCost, maxCost);
-            return costProduct;
-        }
-
-        private void Exit()
-        {
-            _isWorking = false;
+            return _random.Next(minCost, maxCost);
         }
     }
 
@@ -120,65 +118,74 @@ namespace ConsoleApp1
             _products = products;
         }
 
-        public void PurchaseProducts()
+        public void PurchaseProducts(ref int revenue)
         {
             ShowProducts();
             Console.WriteLine($"Сумма товаров {GetPurchaseCost()}. У клиента {_money} денег");
 
             if (GetPurchaseCost() <= _money)
             {
-                Console.WriteLine("Клиент оплатил покупку");
+                CalculateClient(ref revenue);
             }
             else 
             {
-                RemoveProduct();
+                RemoveProducts();
+                CalculateClient(ref revenue);
             }
         }
 
-        private void RemoveProduct()
+        private void CalculateClient(ref int revenue) 
+        {
+            _money -= GetPurchaseCost();
+            revenue += GetPurchaseCost();
+            Console.WriteLine($"Клиент оплатил покупку и у него осталось {_money} денег");
+            Console.WriteLine($"У магазина на счету {revenue}");
+        }
+
+        private void RemoveProducts()
         {
             while (GetPurchaseCost() > _money)
             {
                 Random random = new Random();
                 int index = random.Next(1, _products.Count);
-                Product productToRemove = _products[index];
-                Console.WriteLine($"Клиент отказался от товара {productToRemove.ProductName}");
-                _products.RemoveAt(index);
+                Product productToRemove = _products[index-1];
+                Console.WriteLine($"Клиент отказался от товара {productToRemove.Name}");
+                _products.RemoveAt(index-1);
             }
         }
 
         private int GetPurchaseCost()
         {
-            int PurchaseCoast = 0;
+            int purchaseCoast = 0;
 
-            foreach (var item in _products)
+            foreach (var product in _products)
             {
-                PurchaseCoast += item.ProductCost;
+                purchaseCoast += product.Cost;
             }
 
-            return PurchaseCoast;
+            return purchaseCoast;
         }
 
         private void ShowProducts()
         {
-            Console.WriteLine("Корзина клиента");
+            Console.WriteLine("\nКорзина клиента");
 
-            foreach (var item in _products)
+            foreach (var product in _products)
             {
-                Console.WriteLine(item.ProductName + item.ProductCost);
+                Console.WriteLine(product.Name + " " + product.Cost);
             }
         }
     }
 
     class Product
     {
-        public string ProductName { get; private set; }
-        public int ProductCost { get; private set; }
+        public string Name { get; private set; }
+        public int Cost { get; private set; }
 
-        public Product(string productName, int productCost)
+        public Product(string name, int cost)
         {
-            ProductName = productName;
-            ProductCost = productCost;
+            Name = name;
+            Cost = cost;
         }
     }
 }
